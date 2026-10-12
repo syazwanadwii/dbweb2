@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Thirteen Necro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        @keyframes welcomeIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .welcome-anim { animation: welcomeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="container mx-auto px-4 max-w-md relative z-10">
+        <div class="glass rounded-3xl p-8 shadow-2xl welcome-anim">
+            <div class="text-center mb-8">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25"><b>Thirteen Necro</b></span>
+                <h1 class="text-3xl font-bold mt-4 tracking-tight">Selamat Datang</h1>
+                <p class="text-slate-400 text-sm mt-2">Masuk ke sistem manajemen token bot Telegram terpusat</p>
+            </div>
+
+            <form id="loginForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Username</label>
+                    <input type="text" id="username" required class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Password</label>
+                    <input type="password" id="password" required class="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div id="errorMsg" class="text-rose-400 text-xs text-center hidden"></div>
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-[0.98] transition">Masuk Dashboard</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        if (localStorage.getItem('currentUser')) {
+            window.location.href = 'dashboard.html';
+        }
+
+        async function fetchGitHubFile(path) {
+            const res = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`, {
+                headers: { 'Authorization': `token ${CONFIG.GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return JSON.parse(decodeURIComponent(escape(atob(data.content))));
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            const err = document.getElementById('errorMsg');
+            err.classList.add('hidden');
+
+            try {
+                let roles = await fetchGitHubFile('roles.json');
+                if (!roles) {
+                    err.textContent = 'Gagal memuat data roles dari GitHub.';
+                    err.classList.remove('hidden');
+                    return;
+                }
+
+                const user = roles.find(x => x.username === u && x.password === p);
+                if (user) {
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    err.textContent = 'Username atau password salah.';
+                    err.classList.remove('hidden');
+                }
+            } catch (ex) {
+                err.textContent = 'Terjadi kesalahan koneksi.';
+                err.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
